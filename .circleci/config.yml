@@ -16,11 +16,10 @@ jobs:
       - run: yarn build
       - aws-s3/copy:
             from: dist/
-            to: s3://mfestorage
+            to: s3://mfestorage/${APP_NAME}/${CIRCLE_BRANCH}
             arguments: --recursive
 
 workflows:
   build:
     jobs:
       - build
-      

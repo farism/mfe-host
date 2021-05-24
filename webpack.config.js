@@ -1,7 +1,18 @@
+const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const ModuleFederationPlugin = require("webpack").container
   .ModuleFederationPlugin;
 const path = require("path");
+const pkg = require("./package.json");
+const name = pkg.name
+
+const mfe = {
+  name,
+  paths: [
+    '/'
+  ],
+}
+
 
 module.exports = {
   entry: "./src/index",
@@ -12,7 +23,8 @@ module.exports = {
     port: 3001,
   },
   output: {
-    publicPath: "auto",
+    path: path.resolve("dist"),
+    publicPath: "",
   },
   module: {
     rules: [
@@ -27,6 +39,17 @@ module.exports = {
     ],
   },
   plugins: [
+    new WebpackManifestPlugin({
+      generate: (seed, files, entries) => {
+        return {
+          ...mfe,
+          files: files.reduce(
+            (acc, cur) => ({ ...acc, [cur.name]: cur.path }),
+            {}
+          ),
+        };
+      },
+    }),
     new ModuleFederationPlugin({
       name: "host",
       // adds react as shared module
