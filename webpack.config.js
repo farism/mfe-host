@@ -23,6 +23,8 @@ module.exports = {
     port: 3001,
   },
   output: {
+    filename: "[contenthash].bundle.js",
+    chunkFilename: "[id].[chunkhash].js",
     path: path.resolve("dist"),
     publicPath: "",
   },
