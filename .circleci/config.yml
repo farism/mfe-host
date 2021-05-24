@@ -1,0 +1,26 @@
+# This config uses the `.circleci/extended/orb-test.yml` as its base, and then publishes the app to S3.
+# The workflow contained here demonstrates a practical application of `post-steps`
+# and using workspace persistence
+version: 2.1
+
+orbs:
+  aws-s3: circleci/aws-s3@2.0
+
+jobs:
+  build:
+    docker: 
+      - image: circleci/node:12.3.1
+    steps:
+      - checkout
+      - run: yarn
+      - run: yarn build
+      - aws-s3/copy:
+            from: dist/
+            to: s3://mfestorage
+            arguments: --recursive
+
+workflows:
+  build:
+    jobs:
+      - build
+      
