@@ -1,4 +1,6 @@
 import { Button, Input, Modal } from "@procore/core-react";
+import ChevronDown from "@procore/core-icons/dist/icons/ChevronDown";
+import ChevronRight from "@procore/core-icons/dist/icons/ChevronRight";
 import qs from "qs";
 import React from "react";
 import styled from "styled-components";
@@ -30,6 +32,8 @@ const StyledRegistryItem = styled.div``;
 
 const StyledRegistryItemHeader = styled.h3`
   margin: 12px 0 0;
+  display: flex;
+  align-items: center;
 `;
 
 const StyledRegistryItemBody = styled.div`
@@ -188,11 +192,10 @@ export function ModuleRegistry({ registry, resetLocal, updateLocal }) {
                 return (
                   <StyledRegistryItem key={r.name}>
                     <StyledRegistryItemHeader onClick={() => toggle(r.name)}>
-                      {r.name}
+                      {r.name}{" "}
+                      {open[r.name] ? <ChevronDown /> : <ChevronRight />}
                     </StyledRegistryItemHeader>
-                    <StyledRegistryItemBody
-                      className={open[r.name] || (true && "open")}
-                    >
+                    <StyledRegistryItemBody className={open[r.name] && "open"}>
                       <form onSubmit={update}>
                         <label>
                           entryPoint url
