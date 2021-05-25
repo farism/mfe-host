@@ -135,8 +135,6 @@ function RemoteEntry(props) {
 function App() {
   const registry = useModuleRegistry();
 
-  console.log(registry.registry);
-
   return (
     <div
       style={{

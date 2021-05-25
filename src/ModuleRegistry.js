@@ -94,6 +94,8 @@ export function useModuleRegistry() {
 
   function resetLocal() {
     localStorage.clear(localStorageKey);
+
+    setLocalOverrides({});
   }
 
   const registry = React.useMemo(() => {
@@ -141,6 +143,8 @@ export function ModuleRegistry({ registry, resetLocal, updateLocal }) {
 
   function reset() {
     if (confirm("Are you sure you want to reset the module registry?")) {
+      setOpen(false);
+
       resetLocal();
     }
   }
