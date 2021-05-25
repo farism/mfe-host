@@ -1,6 +1,49 @@
 import React from "react";
-import { Route, BrowserRouter, Link } from "react-router-dom";
-import qs from "qs";
+import { BrowserRouter, Link, Route } from "react-router-dom";
+import styled from "styled-components";
+import { ModuleRegistry, useModuleRegistry } from "./ModuleRegistry";
+
+const StyledRegistry = styled.div`
+  min-height: 480px;
+  width: 480px;
+
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  label {
+    padding-top: 12px;
+  }
+
+  .submit {
+  }
+`;
+
+const StyledSearch = styled.div`
+  margin-top: 12px;
+`;
+
+const StyledRegistryItem = styled.div``;
+
+const StyledRegistryItemHeader = styled.h3`
+  margin: 12px 0 0;
+`;
+
+const StyledRegistryItemBody = styled.div`
+  height: 0;
+  overflow: hidden;
+  padding: 2px;
+
+  &.open {
+    height: auto;
+  }
+`;
+
+const StyledSubmit = styled.input`
+  margin-top: 12px;
+  height: 32px;
+`;
 
 function loadComponent(scope, module) {
   return async () => {
@@ -89,49 +132,10 @@ function RemoteEntry(props) {
   );
 }
 
-function useModuleRegistry() {
-  const [remotes, setRemotes] = React.useState([]);
-
-  React.useEffect(() => {
-    const params = qs.parse(location.search.slice(1));
-
-    const overrides = Object.entries(params)
-      .filter(([key, _]) => key.startsWith("remote_"))
-      .reduce(
-        (acc, [key, value]) => ({
-          ...acc,
-          [key.replace("remote_", "")]: value,
-        }),
-        {}
-      );
-
-    fetch("https://mfestorage.s3.amazonaws.com/module-registry.json").then(
-      async (res) => {
-        if (res.status === 200) {
-          const registry = (await res.json()).map((entry) => {
-            const url = overrides[entry.name]
-              ? entry.url.replace("master", overrides[entry.name])
-              : entry.url;
-
-            return {
-              ...entry,
-              url,
-            };
-          });
-
-          setRemotes(registry);
-        }
-      }
-    );
-  }, []);
-
-  console.log({ remotes });
-
-  return remotes;
-}
-
 function App() {
-  const remotes = useModuleRegistry();
+  const registry = useModuleRegistry();
+
+  console.log(registry.registry);
 
   return (
     <div
@@ -147,6 +151,7 @@ function App() {
         <strong>remotes</strong> and <strong>exposes</strong>. It will no load
         components that have been loaded already.
       </p>
+      <ModuleRegistry {...registry} />
       <BrowserRouter>
         <Link to={{ pathname: "/webclient/app2", search: location.search }}>
           App 2
@@ -154,7 +159,7 @@ function App() {
         <Link to={{ pathname: "/webclient/app3", search: location.search }}>
           App 3
         </Link>
-        {remotes.map((remote) => {
+        {registry.registry.map((remote) => {
           return remote.paths.map((p) => {
             return (
               <Route key={p} path={`/${p}`}>
