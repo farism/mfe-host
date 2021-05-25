@@ -1,9 +1,11 @@
-import { Button, Input, Modal } from "@procore/core-react";
 import ChevronDown from "@procore/core-icons/dist/icons/ChevronDown";
 import ChevronRight from "@procore/core-icons/dist/icons/ChevronRight";
+import { Button, Input, Modal } from "@procore/core-react";
 import qs from "qs";
 import React from "react";
 import styled from "styled-components";
+
+const s3Url = "https://mfestorage.s3.amazonaws.com";
 
 const localStorageKey = "moduleRegistry";
 
@@ -90,7 +92,7 @@ export function useModuleRegistry() {
 
   const [localOverrides, setLocalOverrides] = React.useState(getLocalStorage());
 
-  const [queryParamOverrides, _] = React.useState(getQueryParams());
+  const [queryParamOverrides, setQueryParamOverrides] = React.useState([]);
 
   function updateLocal(item) {
     setLocalOverrides(setLocalStorage(item));
@@ -104,33 +106,52 @@ export function useModuleRegistry() {
 
   const registry = React.useMemo(() => {
     return s3Registry.map((entry) => {
+      const queryParam = queryParamOverrides.find(
+        ({ name }) => name === entry.name
+      );
+
+      if (queryParam) {
+        return queryParam;
+      }
+
       const local = localOverrides[entry.name];
 
       if (local) {
         return local;
       }
 
-      const url = queryParamOverrides[entry.name]
-        ? entry.url.replace("master", queryParamOverrides[entry.name])
-        : entry.url;
-
-      return {
-        ...entry,
-        url,
-      };
+      return entry;
     });
   }, [s3Registry, queryParamOverrides, localOverrides]);
 
   React.useEffect(() => {
-    fetch("https://mfestorage.s3.amazonaws.com/module-registry.json").then(
-      async (res) => {
-        if (res.status === 200) {
-          const registry = await res.json();
+    const params = Object.entries(getQueryParams());
 
-          setS3Registry(registry);
-        }
-      }
+    const requests = params.map(([app, branch]) =>
+      fetch(`${s3Url}/apps/${app}/${branch}/manifest.json`)
     );
+
+    Promise.all(requests)
+      .then((res) => Promise.all(res.map((r) => r.json())))
+      .then((res) =>
+        res.map((r, i) => {
+          const branch = params[i][1];
+
+          const entry = r.files[`${r.mfe.name}.js`];
+
+          return {
+            ...r.mfe,
+            url: `${s3Url}/apps/${r.mfe.name}/${branch}/${entry}`,
+          };
+        })
+      )
+      .then(setQueryParamOverrides);
+
+    fetch(`${s3Url}/module-registry.json`).then((res) => {
+      if (res.status === 200) {
+        res.json().then(setS3Registry);
+      }
+    });
   }, []);
 
   return { registry, updateLocal, resetLocal };
@@ -158,7 +179,9 @@ export function ModuleRegistry({ registry, resetLocal, updateLocal }) {
 
     const item = {};
 
-    for (const [key, value] of new FormData(e.currentTarget).entries()) {
+    const data = new FormData(e.currentTarget).entries();
+
+    for (const [key, value] of data) {
       item[key] = value;
     }
 
