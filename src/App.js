@@ -1,4 +1,6 @@
 import React from "react";
+import { Route, BrowserRouter, Link } from "react-router-dom";
+import qs from "qs";
 
 function loadComponent(scope, module) {
   return async () => {
@@ -8,6 +10,8 @@ function loadComponent(scope, module) {
     const container = window[scope]; // or get the container somewhere else
     // Initialize the container, it may provide shared modules
     await container.init(__webpack_share_scopes__.default);
+
+    // console.log(window[scope].get(module));
     const factory = await window[scope].get(module);
     const Module = factory();
     return Module;
@@ -57,52 +61,77 @@ const useDynamicScript = (args) => {
   };
 };
 
-function System(props) {
+function RemoteEntry(props) {
   const { ready, failed } = useDynamicScript({
-    url: props.system && props.system.url,
+    url: props.remote.url,
   });
 
-  if (!props.system) {
-    return <h2>Not system specified</h2>;
+  if (!props.remote) {
+    return <h2>Not remote specified</h2>;
   }
 
   if (!ready) {
-    return <h2>Loading dynamic script: {props.system.url}</h2>;
+    return <h2>Loading dynamic script: {props.remote.url}</h2>;
   }
 
   if (failed) {
-    return <h2>Failed to load dynamic script: {props.system.url}</h2>;
+    return <h2>Failed to load dynamic script: {props.remote.url}</h2>;
   }
 
   const Component = React.lazy(
-    loadComponent(props.system.scope, props.system.module)
+    loadComponent(props.remote.name, props.remote.module)
   );
 
   return (
-    <React.Suspense fallback="Loading System">
+    <React.Suspense fallback="Loading App">
       <Component />
     </React.Suspense>
   );
 }
 
+function useModuleRegistry() {
+  const [remotes, setRemotes] = React.useState([]);
+
+  React.useEffect(() => {
+    const params = qs.parse(location.search.slice(1));
+
+    const overrides = Object.entries(params)
+      .filter(([key, _]) => key.startsWith("remote_"))
+      .reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key.replace("remote_", "")]: value,
+        }),
+        {}
+      );
+
+    fetch("https://mfestorage.s3.amazonaws.com/module-registry.json").then(
+      async (res) => {
+        if (res.status === 200) {
+          const registry = (await res.json()).map((entry) => {
+            const url = overrides[entry.name]
+              ? entry.url.replace("master", overrides[entry.name])
+              : entry.url;
+
+            return {
+              ...entry,
+              url,
+            };
+          });
+
+          setRemotes(registry);
+        }
+      }
+    );
+  }, []);
+
+  console.log({ remotes });
+
+  return remotes;
+}
+
 function App() {
-  const [system, setSystem] = React.useState(undefined);
-
-  function setApp2() {
-    setSystem({
-      url: "http://localhost:3002/remoteEntry.js",
-      scope: "app2",
-      module: "./Widget",
-    });
-  }
-
-  function setApp3() {
-    setSystem({
-      url: "http://localhost:3003/remoteEntry.js",
-      scope: "app3",
-      module: "./Widget",
-    });
-  }
+  const remotes = useModuleRegistry();
 
   return (
     <div
@@ -118,11 +147,23 @@ function App() {
         <strong>remotes</strong> and <strong>exposes</strong>. It will no load
         components that have been loaded already.
       </p>
-      <button onClick={setApp2}>Load App 2 Widget</button>
-      <button onClick={setApp3}>Load App 3 Widget</button>
-      <div style={{ marginTop: "2em" }}>
-        <System system={system} />
-      </div>
+      <BrowserRouter>
+        <Link to={{ pathname: "/webclient/app2", search: location.search }}>
+          App 2
+        </Link>
+        <Link to={{ pathname: "/webclient/app3", search: location.search }}>
+          App 3
+        </Link>
+        {remotes.map((remote) => {
+          return remote.paths.map((p) => {
+            return (
+              <Route key={p} path={`/${p}`}>
+                <RemoteEntry key={remote.name} remote={remote} />
+              </Route>
+            );
+          });
+        })}
+      </BrowserRouter>
     </div>
   );
 }

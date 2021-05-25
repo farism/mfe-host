@@ -1,32 +1,30 @@
 const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const ModuleFederationPlugin = require("webpack").container
-  .ModuleFederationPlugin;
+const ModuleFederationPlugin =
+  require("webpack").container.ModuleFederationPlugin;
 const path = require("path");
 const pkg = require("./package.json");
-const name = pkg.name
+const name = pkg.name;
 
 const mfe = {
   name,
-  paths: [
-    '/'
-  ],
-}
-
+  paths: ["/"],
+};
 
 module.exports = {
   entry: "./src/index",
   mode: "development",
   target: "web",
   devServer: {
+    historyApiFallback: true,
     contentBase: path.join(__dirname, "dist"),
-    port: 3001,
+    port: 3000,
   },
   output: {
     filename: "bundle.[contenthash].js",
     chunkFilename: "[id].[chunkhash].js",
     path: path.resolve("dist"),
-    publicPath: "",
+    publicPath: "/",
   },
   module: {
     rules: [
