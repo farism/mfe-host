@@ -10,8 +10,9 @@ const s3Url = "https://mfestorage.s3.amazonaws.com";
 const localStorageKey = "moduleRegistry";
 
 const StyledRegistry = styled.div`
-  min-height: 480px;
-  width: 480px;
+  flex: 0 0 auto;
+  padding-bottom: 24px;
+  width: 540px;
 
   form {
     display: flex;
@@ -20,6 +21,10 @@ const StyledRegistry = styled.div`
 
   label {
     padding-top: 12px;
+
+    > input {
+      margin-top: 2px;
+    }
   }
 
   .submit {
@@ -30,21 +35,30 @@ const StyledSearch = styled.div`
   margin-top: 12px;
 `;
 
-const StyledRegistryItem = styled.div``;
+const StyledRegistryItem = styled.div`
+  border: 2px solid #ccc;
+  margin-top: 12px;
+
+  &.override {
+    background-color: rgb(238, 252, 238);
+    border-color: rgb(28, 130, 23);
+  }
+`;
 
 const StyledRegistryItemHeader = styled.h3`
-  margin: 12px 0 0;
+  margin: 0;
   display: flex;
   align-items: center;
+  padding: 8px;
 `;
 
 const StyledRegistryItemBody = styled.div`
   height: 0;
   overflow: hidden;
-  padding: 2px;
 
   &.open {
     height: auto;
+    padding: 8px;
   }
 `;
 
@@ -124,6 +138,10 @@ export function useModuleRegistry() {
     });
   }, [s3Registry, queryParamOverrides, localOverrides]);
 
+  const overrides = React.useMemo(() => {
+    return s3Registry.map((r, i) => r !== registry[i]);
+  }, [registry]);
+
   React.useEffect(() => {
     const params = Object.entries(getQueryParams());
 
@@ -154,10 +172,15 @@ export function useModuleRegistry() {
     });
   }, []);
 
-  return { registry, updateLocal, resetLocal };
+  return { registry, updateLocal, resetLocal, overrides };
 }
 
-export function ModuleRegistry({ registry, resetLocal, updateLocal }) {
+export function ModuleRegistry({
+  registry,
+  resetLocal,
+  updateLocal,
+  overrides,
+}) {
   const [search, setSearch] = React.useState("");
 
   const [open, setOpen] = React.useState(false);
@@ -211,9 +234,12 @@ export function ModuleRegistry({ registry, resetLocal, updateLocal }) {
             </StyledSearch>
             {registry
               .filter((r) => r.name.includes(search))
-              .map((r) => {
+              .map((r, i) => {
                 return (
-                  <StyledRegistryItem key={r.name}>
+                  <StyledRegistryItem
+                    key={r.name}
+                    className={overrides[i] && "override"}
+                  >
                     <StyledRegistryItemHeader onClick={() => toggle(r.name)}>
                       {r.name}{" "}
                       {open[r.name] ? <ChevronDown /> : <ChevronRight />}

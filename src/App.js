@@ -149,13 +149,21 @@ function App() {
         components that have been loaded already.
       </p>
       <ModuleRegistry {...registry} />
+      <br />
+      <br />
       <BrowserRouter>
-        <Link to={{ pathname: "/webclient/app2", search: location.search }}>
-          App 2
-        </Link>
-        <Link to={{ pathname: "/webclient/app3", search: location.search }}>
-          App 3
-        </Link>
+        <div>
+          <Link
+            to={{ pathname: "/webclient/app2", search: location.search }}
+            style={{ marginRight: 24 }}
+          >
+            App 2
+          </Link>
+          <Link to={{ pathname: "/webclient/app3", search: location.search }}>
+            App 3
+          </Link>
+        </div>
+        <br />
         {registry.registry.map((remote) => {
           return remote.paths.map((p) => {
             return (
